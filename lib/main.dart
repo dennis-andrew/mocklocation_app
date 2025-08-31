@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mocklocation_app/home_page.dart';
+import 'package:mocklocation_app/auth_wrapper.dart';
 
 void main() {
   runApp(const MyApp());
@@ -11,12 +11,12 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Mock Location App',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
         useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'Updating the mocking coords to BE'),
+      home: const AuthWrapper(),
     );
   }
 }

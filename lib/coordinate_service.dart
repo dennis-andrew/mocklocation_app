@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:developer';
+import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'socket_connection.dart';
 import 'enums.dart';
@@ -37,7 +38,7 @@ class CoordinateService {
 
   Future<void> startUpdatingCoordinates(int id, String baseUrl,
       String socketBaseUrl, CoordinateType coordinateType,
-      {int? incidentId}) async {
+      {int? incidentId, BuildContext? context}) async {
     if (_isUpdating) {
       log('Already updating coordinates');
       return;
@@ -49,6 +50,19 @@ class CoordinateService {
     }
 
     final AuthService authService = AuthService();
+    
+    // Check if token is expired
+    if (!authService.isLoggedIn) {
+      log('Token expired, redirecting to login page');
+      if (context != null && context.mounted) {
+        await authService.logout();
+        AuthService.redirectToLogin(context);
+        return;
+      } else {
+        throw Exception('Token expired. Please login again.');
+      }
+    }
+    
     final String? accessToken = authService.currentToken?.accessToken;
 
     if (accessToken == null) {
@@ -57,7 +71,20 @@ class CoordinateService {
 
     try {
       if (!socketService.isInitialized) {
-        await socketService.initialize(baseUrl, socketBaseUrl, accessToken);
+        await socketService.initialize(baseUrl, socketBaseUrl, accessToken, onError: (error) {
+          // Handle socket errors by redirecting to login if auth-related
+          if (context != null && context.mounted && (error.toString().contains('unauthorized') || 
+              error.toString().contains('token') || 
+              error.toString().contains('auth'))) {
+            
+            log('Socket authentication error, redirecting to login: $error');
+            AuthService().logout().then((_) {
+              if (context.mounted) {
+                AuthService.redirectToLogin(context);
+              }
+            });
+          }
+        });
       }
 
       if (coordinateType == CoordinateType.apparatus) {

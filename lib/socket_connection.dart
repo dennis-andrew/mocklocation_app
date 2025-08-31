@@ -56,7 +56,7 @@ class SocketService {
   // }
 
   Future<void> initialize(
-      String baseUrl, String socketBaseUrl, String? accessToken) async {
+      String baseUrl, String socketBaseUrl, String? accessToken, {Function(dynamic)? onError}) async {
     if (isInitialized) {
       return;
     }
@@ -75,7 +75,7 @@ class SocketService {
               .enableForceNewConnection()
               .build(),
         );
-        _setupSocketListeners(baseUrl, socketBaseUrl);
+        _setupSocketListeners(baseUrl, socketBaseUrl, onError);
         socket?.connect();
         isInitialized = true;
       } else {
@@ -87,7 +87,7 @@ class SocketService {
     }
   }
 
-  void _setupSocketListeners(String baseUrl, String socketBaseUrl) {
+  void _setupSocketListeners(String baseUrl, String socketBaseUrl, Function(dynamic)? onError) {
     socket?.onConnect((dynamic event) {
       log('Socket onConnect : $event');
 
@@ -126,14 +126,17 @@ class SocketService {
 
     socket?.onError((dynamic error) {
       log('Socket onError: $error');
+      onError?.call(error);
     });
 
     socket?.on('connect_error', (dynamic err) {
       log('Socket connect_error: $err');
+      onError?.call(err);
     });
 
     socket?.on('error', (dynamic err) async {
       log('Socket error : $err');
+      onError?.call(err);
 
       if (err is Map) {
         final String? reason =

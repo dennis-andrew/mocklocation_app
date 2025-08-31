@@ -5,6 +5,7 @@ import 'coordinate_service.dart';
 import 'services/auth_service.dart';
 import 'services/api_service.dart';
 import 'enums.dart';
+import 'auth_wrapper.dart';
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key, required this.title});
@@ -42,46 +43,18 @@ class _MyHomePageState extends State<MyHomePage> {
       _isLoggedIn = _authService.isLoggedIn;
       _statusMessage = _isLoggedIn ? 'Ready to start' : 'Please login first';
     });
-
-    if (!_isLoggedIn) {
-      await _login();
-    }
-  }
-
-  Future<void> _login() async {
-    setState(() {
-      _statusMessage = 'Logging in...';
-    });
-
-    try {
-      final response = await _authService.login(
-        email: 'sprint5user1@yopmail.com',
-        password: 'Pass@123',
-      );
-
-      if (response.success) {
-        setState(() {
-          _isLoggedIn = true;
-          _statusMessage = 'Login successful - Ready to start';
-        });
-      } else {
-        setState(() {
-          _statusMessage = 'Login failed: ${response.error}';
-        });
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Login failed: ${response.error}')),
-          );
-        }
-      }
-    } catch (e) {
-      setState(() {
-        _statusMessage = 'Login error: $e';
-      });
-    }
   }
 
   Future<void> _startUpdating() async {
+    // Check if still logged in (token not expired)
+    if (!_authService.isLoggedIn) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Session expired. Please login again.')),
+      );
+      AuthService.redirectToLogin(context);
+      return;
+    }
+
     if (!_isLoggedIn) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Please login first')),
@@ -111,6 +84,18 @@ class _MyHomePageState extends State<MyHomePage> {
         _statusMessage = 'Starting...';
       });
 
+      // Final token expiration check before broadcasting coordinates
+      if (!_authService.isLoggedIn) {
+        await _authService.logout();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Session expired. Redirecting to login...')),
+          );
+          AuthService.redirectToLogin(context);
+        }
+        return;
+      }
+
       int? incidentId;
       if (_selectedCoordinateType == CoordinateType.personnel) {
         incidentId = int.parse(incidentIdController.text);
@@ -122,6 +107,7 @@ class _MyHomePageState extends State<MyHomePage> {
         socketBaseUrl,
         _selectedCoordinateType,
         incidentId: incidentId,
+        context: context,
       );
 
       setState(() {
@@ -130,6 +116,26 @@ class _MyHomePageState extends State<MyHomePage> {
 
       _startListeningToPositionUpdates();
     } catch (e) {
+      String errorMessage = e.toString();
+
+      // Check if it's an authentication error
+      if (errorMessage.contains('access token') ||
+          errorMessage.contains('unauthorized') ||
+          errorMessage.contains('token') ||
+          errorMessage.contains('login')) {
+        // Clear the session and redirect to login
+        await _authService.logout();
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Session expired. Redirecting to login...')),
+          );
+          AuthService.redirectToLogin(context);
+        }
+        return;
+      }
+
+      // For other errors, show error message
       setState(() {
         _statusMessage = 'Error: $e';
       });
@@ -196,11 +202,6 @@ class _MyHomePageState extends State<MyHomePage> {
 
     try {
       await _authService.logout();
-      setState(() {
-        _isLoggedIn = false;
-        _statusMessage = 'Logged out successfully';
-        _currentPosition = null;
-      });
 
       // Stop coordinate updates if running
       if (_coordinateService.isUpdating) {
@@ -217,8 +218,10 @@ class _MyHomePageState extends State<MyHomePage> {
       incidentIdController.clear();
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Logged out successfully')),
+        // Navigate back to login page
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const AuthWrapper()),
+          (route) => false,
         );
       }
     } catch (e) {
@@ -242,7 +245,7 @@ class _MyHomePageState extends State<MyHomePage> {
         backgroundColor: Colors.indigo[600],
         foregroundColor: Colors.white,
         title: Text(
-          'Mock Location Service',
+          'Mock Location App',
           style: TextStyle(
             fontWeight: FontWeight.w600,
             fontSize: 20,
@@ -300,7 +303,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             SizedBox(width: 12),
                             Expanded(
                               child: Text(
-                                'Return to this app after starting simulation in Locito app',
+                                'Return to this app after starting simulation in Lockito app',
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 14,
@@ -681,38 +684,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       ),
                     if (_selectedCoordinateType == CoordinateType.personnel)
                       SizedBox(height: 20),
-                    // Action Buttons
-                    if (!_isLoggedIn)
-                      SizedBox(
-                        width: double.infinity,
-                        height: 56,
-                        child: ElevatedButton(
-                          onPressed: _login,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green[600],
-                            foregroundColor: Colors.white,
-                            elevation: 0,
-                            shadowColor: Colors.transparent,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.login, size: 20),
-                              SizedBox(width: 8),
-                              Text(
-                                'Login to Continue',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
+                    // Action Buttons - This should not show since we now handle auth in AuthWrapper
 
                     if (_isLoggedIn)
                       Row(
@@ -931,7 +903,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                         ),
                                         SizedBox(width: 8),
                                         Text(
-                                          '${_selectedCoordinateType.name.toUpperCase()} ID: ${_authService.currentUser?.uniqueId ?? 'Unknown'}',
+                                          '${_selectedCoordinateType.name.toUpperCase()} ID: ${textEditingController.text}',
                                           style: TextStyle(
                                             fontSize: 14,
                                             fontWeight: FontWeight.w500,
