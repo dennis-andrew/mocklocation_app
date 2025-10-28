@@ -17,8 +17,10 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  static String baseUrl = 'https://smart-silver-rat.pams.revolte.io/api/v1/';
-  static String socketBaseUrl = 'https://smart-silver-rat.pams.revolte.io/';
+  static String baseUrl =
+      'https://sick-olive-dragon.rootquotient.revolte.io/api/v1/';
+  static String socketBaseUrl =
+      'https://sick-olive-dragon.rootquotient.revolte.io/';
 
   TextEditingController textEditingController = TextEditingController();
   TextEditingController incidentIdController = TextEditingController();

@@ -12,7 +12,8 @@ class AuthWrapper extends StatefulWidget {
 }
 
 class _AuthWrapperState extends State<AuthWrapper> {
-  static String baseUrl = 'https://smart-silver-rat.pams.revolte.io/api/v1/';
+  static String baseUrl =
+      'https://sick-olive-dragon.rootquotient.revolte.io/api/v1/';
 
   final AuthService _authService = AuthService();
   bool _isInitializing = true;

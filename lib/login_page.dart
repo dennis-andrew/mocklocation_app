@@ -11,7 +11,8 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  static String baseUrl = 'https://smart-silver-rat.pams.revolte.io/api/v1/';
+  static String baseUrl =
+      'https://sick-olive-dragon.rootquotient.revolte.io/api/v1/';
 
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
