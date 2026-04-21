@@ -36,6 +36,7 @@ class ApiService {
   Future<LoginResponse> login({
     required String email,
     required String password,
+    required String deviceId,
   }) async {
     try {
       final response = await _dio.post(
@@ -46,6 +47,7 @@ class ApiService {
           "remember_me": true,
           'grant_type': 'credentials',
           "provider": "local",
+          'device_id': deviceId,
         },
       );
 

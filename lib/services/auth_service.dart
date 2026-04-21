@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user.dart';
 import '../models/token.dart';
 import 'api_service.dart';
+import 'device_id_service.dart';
 import '../auth_wrapper.dart';
 
 class AuthService {
@@ -62,9 +63,11 @@ class AuthService {
     required String password,
   }) async {
     try {
+      final String deviceId = await DeviceIdService.getOrCreateDeviceId();
       final response = await ApiService().login(
         email: email,
         password: password,
+        deviceId: deviceId,
       );
 
       if (response.success && response.user != null && response.token != null) {

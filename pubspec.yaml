@@ -39,6 +39,7 @@ dependencies:
   dio: ^5.7.0
   shared_preferences: ^2.2.2
   pretty_dio_logger: ^1.4.0
+  uuid: ^4.5.1
   
 
 dev_dependencies:
